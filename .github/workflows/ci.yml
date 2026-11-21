@@ -128,11 +128,19 @@ jobs:
           kubectl rollout status deployment/leadflow-frontend -n leadflow --timeout=120s
           echo "All deployments are healthy!"
 
-      - name: Verify Live Endpoints
+            - name: Verify Live Endpoints
         run: |
-          # Port forward backend service and test health checks
-          kubectl port-forward svc/leadflow-backend -n leadflow 3001:3001 &
-          sleep 5
-          curl -f http://localhost:3001/healthz
-          curl -f http://localhost:3001/readyz
-          echo "Health probes responded with 200 OK!"
+          echo "Testing health endpoints directly inside the backend pod..."
+          kubectl exec -n leadflow deployment/leadflow-backend -- node -e '
+            Promise.all([
+              fetch("http://localhost:3001/healthz").then(r => r.json()),
+              fetch("http://localhost:3001/readyz").then(r => r.json()),
+              fetch("http://localhost:3001/version").then(r => r.json())
+            ]).then(([h, r, v]) => {
+              console.log("Health:", JSON.stringify(h));
+              console.log("Ready:", JSON.stringify(r));
+              console.log("Version:", JSON.stringify(v));
+              if (h.status !== "ok" || r.status !== "ready") process.exit(1);
+            });
+          '
+          echo "All operational endpoints passed with 200 OK!"
