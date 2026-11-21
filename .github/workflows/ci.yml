@@ -128,7 +128,7 @@ jobs:
           kubectl rollout status deployment/leadflow-frontend -n leadflow --timeout=120s
           echo "All deployments are healthy!"
 
-            - name: Verify Live Endpoints
+      - name: Verify Live Endpoints
         run: |
           echo "Testing health endpoints directly inside the backend pod..."
           kubectl exec -n leadflow deployment/leadflow-backend -- node -e '
