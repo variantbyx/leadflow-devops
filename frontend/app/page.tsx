@@ -1,0 +1,165 @@
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import type { LeadListItem, LeadStatus } from "@/lib/types";
+import Header from "@/components/Header";
+import LeadList from "@/components/LeadList";
+import StatsRow from "@/components/StatsRow";
+import Toolbar from "@/components/Toolbar";
+import LeadDialog from "@/components/LeadDialog";
+import AddLeadDialog from "@/components/AddLeadDialog";
+
+export default function Home() {
+  const [leads, setLeads] = useState<LeadListItem[]>([]);
+  const [filtered, setFiltered] = useState<LeadListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  /* ── Selected lead for dialog ───────────────────────────── */
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [showAddLead, setShowAddLead] = useState(false);
+
+  /* ── Fetch ──────────────────────────────────────────────── */
+  const fetchLeads = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/leads");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data: LeadListItem[] = await res.json();
+      setLeads(data);
+      setFiltered(data);
+    } catch (err) {
+      console.error("Error fetching leads:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
+
+  /* ── Search + filter ────────────────────────────────────── */
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"All" | LeadStatus>("All");
+
+  useEffect(() => {
+    let result = leads;
+    if (statusFilter !== "All") {
+      result = result.filter((l) => l.status === statusFilter);
+    }
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      result = result.filter(
+        (l) =>
+          l.name.toLowerCase().includes(q) ||
+          l.company?.toLowerCase().includes(q)
+      );
+    }
+    setFiltered(result);
+  }, [query, statusFilter, leads]);
+
+  /* ── Handlers ───────────────────────────────────────────── */
+  const handleAddLead = () => {
+    setShowAddLead(true);
+  };
+
+  const handleSelectLead = (lead: LeadListItem) => {
+    setSelectedLeadId(lead.id);
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedLeadId(null);
+  };
+
+  const handleMutate = () => {
+    fetchLeads(); // Refresh the lead list after any change
+  };
+
+  /* ── Status counts (from unfiltered leads) ───────────── */
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const lead of leads) {
+      counts[lead.status] = (counts[lead.status] || 0) + 1;
+    }
+    return counts;
+  }, [leads]);
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header onAddLead={handleAddLead} />
+
+      <main className="mx-auto w-full max-w-[860px] flex-1 px-6 py-7">
+        {loading ? (
+          <LoadingSkeleton />
+        ) : (
+          <>
+            <StatsRow />
+            <Toolbar
+              onSearch={setQuery}
+              onFilter={setStatusFilter}
+              statusCounts={statusCounts}
+              totalCount={leads.length}
+            />
+            <LeadList leads={filtered} onSelectLead={handleSelectLead} />
+          </>
+        )}
+      </main>
+
+      {/* Lead Timeline Dialog */}
+      {selectedLeadId !== null && (
+        <LeadDialog
+          leadId={selectedLeadId}
+          open={true}
+          onClose={handleCloseDialog}
+          onMutate={handleMutate}
+        />
+      )}
+
+      {/* Add New Lead Dialog */}
+      <AddLeadDialog
+        open={showAddLead}
+        onClose={() => setShowAddLead(false)}
+        onCreated={handleMutate}
+      />
+    </div>
+  );
+}
+
+/* ── Loading skeleton ───────────────────────────────────────── */
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-2.5">
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className="skeleton-shimmer rounded-[10px] border p-[18px]"
+          style={{
+            background: "var(--color-surface-1)",
+            borderColor: "var(--color-border-subtle)",
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="h-[38px] w-[38px] flex-shrink-0 rounded-[9px]"
+              style={{ background: "var(--color-surface-3)" }}
+            />
+            <div className="flex-1 space-y-2">
+              <div
+                className="h-[14px] w-[160px] rounded-[4px]"
+                style={{ background: "var(--color-surface-3)" }}
+              />
+              <div
+                className="h-[12px] w-[260px] rounded-[4px]"
+                style={{ background: "var(--color-surface-2)" }}
+              />
+            </div>
+            <div
+              className="h-[22px] w-[72px] rounded-[4px]"
+              style={{ background: "var(--color-surface-3)" }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -1,0 +1,50 @@
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: leadflow-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: leadflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d leadflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: leadflow-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/leadflow
+      - PORT=3001
+      - APP_VERSION=dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 3. Frontend Web UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: leadflow-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - DEV_API_URL=http://backend:3001
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
