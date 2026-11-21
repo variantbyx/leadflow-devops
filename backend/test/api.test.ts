@@ -36,7 +36,7 @@ after(async () => {
 
 describe("operational endpoints", () => {
   it("liveness and readiness are ok", async () => {
-    assert.equal((await call("GET", "/healthz")).status, 500);
+    assert.equal((await call("GET", "/healthz")).status, 200);
     assert.equal((await call("GET", "/readyz")).status, 200);
   });
 });
