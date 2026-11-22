@@ -106,30 +106,25 @@ jobs:
 
       - name: Load Images into Kind Cluster
         run: |
-          mkdir -p /tmp/ci-logs
           {
             echo "=== DOCKER IMAGES ==="
             docker images
             echo "=== KIND CLUSTERS ==="
             kind get clusters
-            echo "=== KIND LOAD BACKEND ==="
+            echo "=== KIND VERSION ==="
+            kind version
+            echo "=== ATTEMPTING KIND LOAD ==="
             docker save leadflow-backend:latest -o backend.tar
             kind load image-archive backend.tar --name leadflow-ci
-            echo "=== KIND LOAD FRONTEND ==="
-            docker save leadflow-frontend:latest -o frontend.tar
-            kind load image-archive frontend.tar --name leadflow-ci
-            echo "=== KIND LOAD DB ==="
-            docker save postgres:16-alpine -o db.tar
-            kind load image-archive db.tar --name leadflow-ci
-            echo "All images successfully loaded!"
-          } 2>&1 | tee /tmp/ci-logs/kind-load.log
-
-      - name: Upload Debug Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-debug-logs
-          path: /tmp/ci-logs
+          } > debug_kind.txt 2>&1 || true
+          cat debug_kind.txt
+          git config user.name "CI Bot"
+          git config user.email "bot@ci.local"
+          git checkout -B debug-output
+          git add debug_kind.txt
+          git commit -m "debug: kind load logs"
+          git push -f origin debug-output
+          exit 1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
