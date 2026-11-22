@@ -102,16 +102,12 @@ jobs:
         run: docker pull --platform linux/amd64 postgres:16-alpine
 
       - name: Create local Kubernetes cluster (Kind)
-        uses: helm/kind-action@v1.10.0
-        with:
-          cluster_name: leadflow-ci
+        run: kind create cluster --name leadflow-ci
 
       - name: Load Images into Kind Cluster
         run: |
-          docker save leadflow-backend:latest | docker exec -i leadflow-ci-control-plane ctr -n k8s.io images import -
-          docker save leadflow-frontend:latest | docker exec -i leadflow-ci-control-plane ctr -n k8s.io images import -
-          docker save postgres:16-alpine | docker exec -i leadflow-ci-control-plane ctr -n k8s.io images import -
-          echo "All images successfully imported into Kind cluster!"
+          kind load docker-image postgres:16-alpine leadflow-backend:latest leadflow-frontend:latest --name leadflow-ci
+          echo "All images successfully loaded into Kind cluster!"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
