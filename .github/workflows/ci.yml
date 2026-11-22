@@ -93,10 +93,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Backend Image
-        run: docker build --platform linux/amd64 -t leadflow-backend:latest ./backend
+        run: docker build --provenance=false --platform linux/amd64 -t leadflow-backend:latest ./backend
 
       - name: Build Frontend Image
-        run: docker build --platform linux/amd64 -t leadflow-frontend:latest ./frontend
+        run: docker build --provenance=false --platform linux/amd64 -t leadflow-frontend:latest ./frontend
 
       - name: Pull Database Image
         run: docker pull --platform linux/amd64 postgres:16-alpine
@@ -106,7 +106,9 @@ jobs:
 
       - name: Load Images into Kind Cluster
         run: |
-          kind load docker-image postgres:16-alpine leadflow-backend:latest leadflow-frontend:latest --name leadflow-ci
+          docker save leadflow-backend:latest leadflow-frontend:latest postgres:16-alpine -o images.tar
+          kind load image-archive images.tar --name leadflow-ci
+          rm -f images.tar
           echo "All images successfully loaded into Kind cluster!"
 
       - name: Setup Terraform
