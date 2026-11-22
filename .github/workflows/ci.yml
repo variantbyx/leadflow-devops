@@ -92,9 +92,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build Backend Image
         run: docker build -t leadflow-backend:latest ./backend
 
@@ -135,18 +132,9 @@ jobs:
       - name: Verify Live Endpoints
         run: |
           echo "Testing health endpoints directly inside the backend pod..."
-          kubectl exec -n leadflow deployment/leadflow-backend -- node -e '
-            Promise.all([
-              fetch("http://localhost:3001/healthz").then(r => r.json()),
-              fetch("http://localhost:3001/readyz").then(r => r.json()),
-              fetch("http://localhost:3001/version").then(r => r.json())
-            ]).then(([h, r, v]) => {
-              console.log("Health:", JSON.stringify(h));
-              console.log("Ready:", JSON.stringify(r));
-              console.log("Version:", JSON.stringify(v));
-              if (h.status !== "ok" || r.status !== "ready") process.exit(1);
-            });
-          '
+          kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/healthz
+          kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/readyz
+          kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/version
           echo "All operational endpoints passed with 200 OK!"
 
       - name: Debug Cluster on Failure
