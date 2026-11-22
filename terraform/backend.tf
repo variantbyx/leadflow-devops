@@ -1,4 +1,5 @@
 resource "kubernetes_deployment" "backend" {
+  depends_on = [kubernetes_deployment.postgres]
   metadata {
     name      = "leadflow-backend"
     namespace = kubernetes_namespace.leadflow.metadata[0].name

@@ -12,6 +12,7 @@ resource "kubernetes_persistent_volume_claim" "postgres_pvc" {
       }
     }
   }
+  wait_until_bound = false
 }
 
 # PostgreSQL Deployment
