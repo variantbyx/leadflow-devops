@@ -128,8 +128,15 @@ jobs:
 
       - name: Verify Live Endpoints
         run: |
-          echo "Testing health endpoints directly inside the backend pod..."
-          kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/healthz
-          kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/readyz
-          kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/version
-          echo "All operational endpoints passed with 200 OK!"
+          echo "Port forwarding to backend service..."
+          kubectl port-forward svc/leadflow-backend -n leadflow 3001:3001 >/dev/null 2>&1 &
+          PF_PID=$!
+          sleep 4
+          curl -f http://127.0.0.1:3001/healthz
+          echo ""
+          curl -f http://127.0.0.1:3001/readyz
+          echo ""
+          curl -f http://127.0.0.1:3001/version
+          echo ""
+          kill $PF_PID || true
+          echo "All operational endpoints verified successfully with 200 OK!"
