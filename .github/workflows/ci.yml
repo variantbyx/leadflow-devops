@@ -92,39 +92,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Backend Image
-        run: docker build --provenance=false --platform linux/amd64 -t leadflow-backend:latest ./backend
+      - name: Start Minikube Cluster
+        uses: medyagh/setup-minikube@latest
+        with:
+          cpus: 2
+          memory: 4000
+          addons: ingress
 
-      - name: Build Frontend Image
-        run: docker build --provenance=false --platform linux/amd64 -t leadflow-frontend:latest ./frontend
-
-      - name: Pull Database Image
-        run: docker pull --platform linux/amd64 postgres:16-alpine
-
-      - name: Create local Kubernetes cluster (Kind)
-        run: kind create cluster --name leadflow-ci
-
-      - name: Load Images into Kind Cluster
+      - name: Build and Pull Images in Minikube
         run: |
-          {
-            echo "=== DOCKER IMAGES ==="
-            docker images
-            echo "=== KIND CLUSTERS ==="
-            kind get clusters
-            echo "=== KIND VERSION ==="
-            kind version
-            echo "=== ATTEMPTING KIND LOAD ==="
-            docker save leadflow-backend:latest -o backend.tar
-            kind load image-archive backend.tar --name leadflow-ci
-          } > debug_kind.txt 2>&1 || true
-          cat debug_kind.txt
-          git config user.name "CI Bot"
-          git config user.email "bot@ci.local"
-          git checkout -B debug-output
-          git add debug_kind.txt
-          git commit -m "debug: kind load logs"
-          git push -f origin debug-output
-          exit 1
+          echo "Building backend image inside Minikube..."
+          minikube image build -t leadflow-backend:latest ./backend
+          echo "Building frontend image inside Minikube..."
+          minikube image build -t leadflow-frontend:latest ./frontend
+          echo "Pulling postgres image inside Minikube..."
+          minikube image pull postgres:16-alpine
+          minikube image ls
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -150,11 +133,3 @@ jobs:
           kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/readyz
           kubectl exec -n leadflow deployment/leadflow-backend -- wget -qO- http://localhost:3001/version
           echo "All operational endpoints passed with 200 OK!"
-
-      - name: Debug Cluster on Failure
-        if: failure()
-        run: |
-          kubectl get all -n leadflow || true
-          kubectl describe pods -n leadflow || true
-          kubectl logs -n leadflow -l app=leadflow-backend --tail=100 || true
-          kubectl logs -n leadflow -l app=leadflow-db --tail=100 || true
