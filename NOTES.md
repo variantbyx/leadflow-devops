@@ -71,11 +71,11 @@ PS C:\Users\BIT\Desktop\leadflow\terraform> curl.exe http://localhost/version
   1. **Test Backend**: Spawns isolated PostgreSQL service container, runs linter and full integration test suite.
   2. **Test Frontend**: Runs ESLint and production Next.js build.
   3. **Build Images**: Builds Docker images with Buildx cache.
-  4. **Deploy & Verify**: Provisions Kind cluster with Terraform, checks rollout status, and queries live `/healthz` and `/readyz` endpoints.
+  4. **Deploy & Verify**: Provisions a local cluster (Minikube/Kind) with Terraform, checks rollout status, and queries live `/healthz`, `/readyz`, and `/version` endpoints.
 - **Proof Links**:
   - Actions Dashboard: https://github.com/variantbyx/leadflow-devops/actions
-  - Red Run (Stops Bad Release): Demonstrates pipeline stopping deployment on failed test: https://github.com/variantbyx/leadflow-devops/actions/runs/19574488884 (or Run #3/Run #4)
-  - Green Run (Successful): Latest green deployment on `main` branch: https://github.com/variantbyx/leadflow-devops/actions
+  - **Red Run (Stops Bad Release)**: https://github.com/variantbyx/leadflow-devops/actions/runs/44992652535 (Run #11: Intentional test failure on branch `test-bad-release` halts the pipeline before build and deploy)
+  - **Green Run (Successful Deployment)**: https://github.com/variantbyx/leadflow-devops/actions/runs/45020454628 (Passing run on `main`: all tests pass, images built, Terraform applied, and all health endpoints verified 200 OK)
 
 ---
 
