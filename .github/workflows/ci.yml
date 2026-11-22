@@ -106,9 +106,21 @@ jobs:
 
       - name: Load Images into Kind Cluster
         run: |
-          docker save leadflow-backend:latest leadflow-frontend:latest postgres:16-alpine -o images.tar
-          kind load image-archive images.tar --name leadflow-ci
-          rm -f images.tar
+          echo "Loading backend image..."
+          docker save leadflow-backend:latest -o backend.tar
+          kind load image-archive backend.tar --name leadflow-ci
+          rm -f backend.tar
+
+          echo "Loading frontend image..."
+          docker save leadflow-frontend:latest -o frontend.tar
+          kind load image-archive frontend.tar --name leadflow-ci
+          rm -f frontend.tar
+
+          echo "Loading postgres image..."
+          docker save postgres:16-alpine -o db.tar
+          kind load image-archive db.tar --name leadflow-ci
+          rm -f db.tar
+
           echo "All images successfully loaded into Kind cluster!"
 
       - name: Setup Terraform
